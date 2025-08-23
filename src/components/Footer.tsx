@@ -44,7 +44,7 @@ export default function Footer() {
                 key={icon.alt}
                 href="#"
                 aria-label={icon.alt}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-light-100/5 hover:bg-light-100/10 ring-1 ring-light-400/10"
+                className="inline-flex h-9 w-9 min-w-9 items-center justify-center rounded-full bg-light-100 hover:bg-light-100/10 ring-1 ring-light-400/10"
               >
                 <Image src={icon.src} alt={icon.alt} width={16} height={16} />
               </Link>

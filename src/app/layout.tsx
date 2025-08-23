@@ -1,3 +1,4 @@
+import { Footer, Navbar } from '@/components';
 import type { Metadata } from 'next';
 import { Jost } from 'next/font/google';
 import './globals.css';
@@ -19,7 +20,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='en'>
-      <body className={`${jost.className} antialiased`}>{children}</body>
+      <body className={`${jost.className} antialiased`}>
+        <Navbar />
+        {children}
+        <Footer />
+      </body>
     </html>
   );
 }
