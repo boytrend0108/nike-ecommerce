@@ -24,14 +24,8 @@ export default function Card({
   href,
   className = '',
 }: CardProps) {
-  const Wrapper: any = href ? Link : 'div';
-  const wrapperProps = href ? { href } : {};
-
-  return (
-    <Wrapper
-      {...(wrapperProps as any)}
-      className={`group block overflow-hidden rounded-xl bg-light-100 shadow-sm ring-1 ring-light-300 hover:shadow-md transition ${className}`}
-    >
+  const content = (
+    <>
       <div className="relative bg-light-200">
         {imageSrc ? (
           <Image
@@ -66,6 +60,25 @@ export default function Card({
         {meta && <p className="mt-1 text-caption text-dark-700">{meta}</p>}
         {description && <p className="mt-2 text-body text-dark-700 line-clamp-2">{description}</p>}
       </div>
-    </Wrapper>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`group block overflow-hidden rounded-xl bg-light-100 shadow-sm ring-1 ring-light-300 hover:shadow-md transition ${className}`}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      className={`group block overflow-hidden rounded-xl bg-light-100 shadow-sm ring-1 ring-light-300 hover:shadow-md transition ${className}`}
+    >
+      {content}
+    </div>
   );
 }
