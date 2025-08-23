@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { db } from '../src/lib/db';
 import { products } from '../src/lib/db/schema';
 
@@ -79,10 +80,10 @@ const nikeProducts = [
 async function seed() {
   try {
     console.log('🌱 Seeding database...');
-    
+
     // Insert products
     await db.insert(products).values(nikeProducts);
-    
+
     console.log('✅ Database seeded successfully!');
     console.log(`📦 Inserted ${nikeProducts.length} Nike products`);
   } catch (error) {
