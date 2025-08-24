@@ -21,6 +21,8 @@ The seed will:
 - Insert filters (genders, colors, sizes), brand (Nike), categories, collections
 - Create 15 Nike products with multiple variants and images
 
+More details: see docs/DB_SETUP.md
+
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
