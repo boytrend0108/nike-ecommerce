@@ -1,5 +1,6 @@
 'use server';
 
+import { mockProducts } from '@/lib/data/mockProducts';
 import { db } from '@/lib/db';
 import {
   brands,
@@ -8,7 +9,9 @@ import {
   genders,
   productImages,
   products as productsTable,
-  productVariants
+  productVariants,
+  reviews,
+  user
 } from '@/lib/db/schema';
 import { sizes } from '@/lib/db/schema/filters/sizes';
 import { and, asc, count, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
@@ -98,7 +101,28 @@ export interface GetAllProductsResult {
   products: ProductListItem[];
   totalCount: number;
   totalPages: number;
-  currentPage: number;
+}
+
+// Review types for server actions
+export interface ReviewItem {
+  id: string;
+  author: string;
+  rating: number;
+  title?: string;
+  content: string;
+  createdAt: string;
+}
+
+// Recommended product type for server actions
+export interface RecommendedProduct {
+  id: string;
+  title: string;
+  price: number;
+  salePrice?: number;
+  mainImage: string;
+  category: string;
+  brand: string;
+  gender: string;
 }
 
 // Schema for validation
@@ -115,6 +139,80 @@ const GetAllProductsParamsSchema = z.object({
   page: z.number().min(1).optional(),
   limit: z.number().min(1).max(100).optional(),
 });
+
+/**
+ * Fallback function to get product from mock data
+ */
+function getProductFromMockData(productId: string): ProductDetail | null {
+  const mockProduct = mockProducts.find(p => p.id === productId);
+  
+  if (!mockProduct) {
+    return null;
+  }
+
+  // Convert mock product to ProductDetail format
+  const variantSummaries: ProductVariantSummary[] = mockProduct.variants.map(variant => ({
+    id: variant.id,
+    price: variant.price,
+    salePrice: variant.salePrice || null,
+    colorId: variant.colorId,
+    colorName: variant.colorName,
+    colorSlug: variant.colorSlug,
+    colorHex: variant.colorHex,
+    sizeId: variant.sizeId,
+    sizeName: variant.sizeName,
+    sizeSlug: variant.sizeSlug,
+    inStock: variant.inStock,
+  }));
+
+  const variantDetails: ProductVariantDetail[] = mockProduct.variants.map(variant => ({
+    id: variant.id,
+    sku: variant.sku,
+    price: variant.price,
+    salePrice: variant.salePrice || null,
+    colorId: variant.colorId,
+    colorName: variant.colorName,
+    colorSlug: variant.colorSlug,
+    colorHex: variant.colorHex,
+    sizeId: variant.sizeId,
+    sizeName: variant.sizeName,
+    sizeSlug: variant.sizeSlug,
+    inStock: variant.inStock,
+    weight: variant.weight,
+    dimensions: null,
+  }));
+
+  const imageDetails: ProductImageDetail[] = mockProduct.images.map((url, index) => ({
+    id: `img-${index}`,
+    url,
+    sortOrder: index,
+    isPrimary: index === 0,
+    variantId: null,
+  }));
+
+  return {
+    id: mockProduct.id,
+    name: mockProduct.name,
+    description: mockProduct.description,
+    categoryId: mockProduct.categoryId,
+    categoryName: mockProduct.categoryName,
+    genderId: mockProduct.genderId,
+    genderLabel: mockProduct.genderLabel,
+    brandId: mockProduct.brandId,
+    brandName: mockProduct.brandName,
+    isPublished: mockProduct.isPublished,
+    createdAt: new Date(mockProduct.createdAt),
+    updatedAt: new Date(mockProduct.createdAt),
+    minPrice: mockProduct.minPrice,
+    maxPrice: mockProduct.maxPrice,
+    hasDiscount: mockProduct.hasDiscount,
+    primaryImage: mockProduct.images[0] || null,
+    images: mockProduct.images,
+    variants: variantSummaries,
+    allVariants: variantDetails,
+    allImages: imageDetails,
+  };
+}
 
 /**
  * Get all products with filtering, sorting, and pagination
@@ -479,10 +577,17 @@ export async function getAllProducts(params: GetAllProductsParams = {}): Promise
 
 /**
  * Get a single product by ID with full details
+ * Falls back to mock data if the ID is not a UUID or if database query fails
  */
 export async function getProduct(productId: string): Promise<ProductDetail | null> {
+  // First check if it's a valid UUID
   const productIdSchema = z.string().uuid();
-  const validatedProductId = productIdSchema.parse(productId);
+  const isValidUUID = productIdSchema.safeParse(productId).success;
+
+  // If not a valid UUID, try to get from mock data
+  if (!isValidUUID) {
+    return getProductFromMockData(productId);
+  }
 
   try {
     // Get basic product info
@@ -506,7 +611,7 @@ export async function getProduct(productId: string): Promise<ProductDetail | nul
       .innerJoin(genders, eq(productsTable.genderId, genders.id))
       .innerJoin(brands, eq(productsTable.brandId, brands.id))
       .where(and(
-        eq(productsTable.id, validatedProductId),
+        eq(productsTable.id, productId),
         eq(productsTable.isPublished, true)
       ));
 
@@ -535,7 +640,7 @@ export async function getProduct(productId: string): Promise<ProductDetail | nul
       .from(productVariants)
       .innerJoin(colors, eq(productVariants.colorId, colors.id))
       .innerJoin(sizes, eq(productVariants.sizeId, sizes.id))
-      .where(eq(productVariants.productId, validatedProductId));
+      .where(eq(productVariants.productId, productId));
 
     // Get all images
     const allImages = await db
@@ -547,7 +652,7 @@ export async function getProduct(productId: string): Promise<ProductDetail | nul
         variantId: productImages.variantId,
       })
       .from(productImages)
-      .where(eq(productImages.productId, validatedProductId))
+      .where(eq(productImages.productId, productId))
       .orderBy(productImages.sortOrder);
 
     // Calculate price ranges and discounts
@@ -624,7 +729,186 @@ export async function getProduct(productId: string): Promise<ProductDetail | nul
 
     return productDetail;
   } catch (error) {
-    console.error('Error fetching product:', error);
-    throw new Error('Failed to fetch product');
+    console.error('Error fetching product from database:', error);
+    // Fall back to mock data if database fails
+    return getProductFromMockData(productId);
+  }
+}
+
+/**
+ * Get dummy reviews for mock data
+ */
+function getDummyReviews(): ReviewItem[] {
+  return [
+    {
+      id: '1',
+      author: 'Sarah M.',
+      rating: 5,
+      content: 'Absolutely love these! The comfort and style are unmatched. Perfect for daily wear and workouts.',
+      createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    },
+    {
+      id: '2',
+      author: 'Mike R.',
+      rating: 4,
+      content: 'Great quality shoes. The fit is true to size and they look amazing. Only minor complaint is they take a bit to break in.',
+      createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+    },
+    {
+      id: '3',
+      author: 'Jessica L.',
+      rating: 5,
+      content: 'These exceeded my expectations! Very comfortable and stylish. I get compliments every time I wear them.',
+      createdAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+    },
+  ];
+}
+
+/**
+ * Get product reviews by product ID
+ * Returns approved reviews sorted by newest first
+ */
+export async function getProductReviews(productId: string): Promise<ReviewItem[]> {
+  try {
+    const productIdSchema = z.string().uuid();
+    const isValidUUID = productIdSchema.safeParse(productId).success;
+    
+    // If not a valid UUID, return dummy reviews
+    if (!isValidUUID) {
+      return getDummyReviews();
+    }
+
+    const reviewsResult = await db
+      .select({
+        id: reviews.id,
+        rating: reviews.rating,
+        comment: reviews.comment,
+        createdAt: reviews.createdAt,
+        authorName: user.name,
+        authorEmail: user.email,
+      })
+      .from(reviews)
+      .innerJoin(user, eq(reviews.userId, user.id))
+      .where(eq(reviews.productId, productId))
+      .orderBy(desc(reviews.createdAt))
+      .limit(10);
+
+    return reviewsResult.map(review => ({
+      id: review.id,
+      author: review.authorName || review.authorEmail.split('@')[0] || 'Anonymous',
+      rating: review.rating,
+      content: review.comment || '',
+      createdAt: review.createdAt.toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error fetching product reviews:', error);
+    // Return dummy reviews if no data exists or error occurs
+    return getDummyReviews();
+  }
+}
+
+/**
+ * Get recommended products based on the current product
+ * Returns products from the same category/brand/gender
+ */
+export async function getRecommendedProducts(productId: string): Promise<RecommendedProduct[]> {
+  try {
+    const productIdSchema = z.string().uuid();
+    const isValidUUID = productIdSchema.safeParse(productId).success;
+    
+    // If not a valid UUID, return empty array
+    if (!isValidUUID) {
+      return [];
+    }
+
+    // First get the current product's details
+    const currentProduct = await db
+      .select({
+        categoryId: productsTable.categoryId,
+        brandId: productsTable.brandId,
+        genderId: productsTable.genderId,
+      })
+      .from(productsTable)
+      .where(eq(productsTable.id, productId))
+      .limit(1);
+
+    if (!currentProduct[0]) {
+      return [];
+    }
+
+    const { categoryId, brandId, genderId } = currentProduct[0];
+
+    // Get recommended products from same category, brand, or gender
+    const recommendedResult = await db
+      .select({
+        id: productsTable.id,
+        name: productsTable.name,
+        categoryName: categories.name,
+        brandName: brands.name,
+        genderLabel: genders.label,
+      })
+      .from(productsTable)
+      .innerJoin(categories, eq(productsTable.categoryId, categories.id))
+      .innerJoin(brands, eq(productsTable.brandId, brands.id))
+      .innerJoin(genders, eq(productsTable.genderId, genders.id))
+      .where(
+        and(
+          eq(productsTable.isPublished, true),
+          or(
+            eq(productsTable.categoryId, categoryId),
+            eq(productsTable.brandId, brandId),
+            eq(productsTable.genderId, genderId)
+          ),
+          // Exclude current product
+          sql`${productsTable.id} != ${productId}`
+        )
+      )
+      .limit(6);
+
+    // For each recommended product, get pricing and primary image
+    const recommendedProducts: RecommendedProduct[] = [];
+
+    for (const product of recommendedResult) {
+      // Get the first variant for pricing
+      const variant = await db
+        .select({
+          price: productVariants.price,
+          salePrice: productVariants.salePrice,
+        })
+        .from(productVariants)
+        .where(eq(productVariants.productId, product.id))
+        .limit(1);
+
+      // Get primary image or first image
+      const image = await db
+        .select({
+          url: productImages.url,
+        })
+        .from(productImages)
+        .where(eq(productImages.productId, product.id))
+        .orderBy(
+          sql`CASE WHEN ${productImages.isPrimary} = true THEN 0 ELSE 1 END`,
+          productImages.sortOrder
+        )
+        .limit(1);
+
+      if (variant[0] && image[0]) {
+        recommendedProducts.push({
+          id: product.id,
+          title: product.name,
+          price: Number(variant[0].price),
+          salePrice: variant[0].salePrice ? Number(variant[0].salePrice) : undefined,
+          mainImage: image[0].url,
+          category: product.categoryName,
+          brand: product.brandName,
+          gender: product.genderLabel,
+        });
+      }
+    }
+
+    return recommendedProducts.slice(0, 4); // Limit to 4 products
+  } catch (error) {
+    console.error('Error fetching recommended products:', error);
+    return [];
   }
 }

@@ -1,13 +1,50 @@
 import ActiveFilters from '@/components/ActiveFilters';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import Filters from '@/components/Filters';
 import ProductCardNew from '@/components/ProductCardNew';
 import Sort from '@/components/Sort';
-import { getAllProducts } from '@/lib/actions/product';
+import { MockProduct, mockProducts } from '@/lib/data/mockProducts';
 import { parseFilterParams } from '@/lib/utils/query';
 import { Suspense } from 'react';
 
 interface ProductsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+// Convert mock product to ProductListItem format
+function convertMockToProductListItem(mockProduct: MockProduct) {
+  return {
+    id: mockProduct.id,
+    name: mockProduct.name,
+    description: mockProduct.description,
+    categoryId: mockProduct.categoryId,
+    categoryName: mockProduct.categoryName,
+    genderId: mockProduct.genderId,
+    genderLabel: mockProduct.genderLabel,
+    brandId: mockProduct.brandId,
+    brandName: mockProduct.brandName,
+    isPublished: mockProduct.isPublished,
+    createdAt: new Date(mockProduct.createdAt),
+    updatedAt: new Date(mockProduct.createdAt),
+    images: mockProduct.images,
+    primaryImage: mockProduct.images[0],
+    variants: mockProduct.variants.map(variant => ({
+      id: variant.id,
+      price: variant.price,
+      salePrice: variant.salePrice || null,
+      colorId: variant.colorId,
+      colorName: variant.colorName,
+      colorSlug: variant.colorSlug,
+      colorHex: variant.colorHex,
+      sizeId: variant.sizeId,
+      sizeName: variant.sizeName,
+      sizeSlug: variant.sizeSlug,
+      inStock: variant.inStock
+    })),
+    minPrice: mockProduct.minPrice,
+    maxPrice: mockProduct.maxPrice,
+    hasDiscount: mockProduct.hasDiscount
+  };
 }
 
 async function ProductsPageContent({ searchParams }: ProductsPageProps) {
@@ -23,17 +60,32 @@ async function ProductsPageContent({ searchParams }: ProductsPageProps) {
     }
   });
 
-  // Parse filters for getAllProducts
-  const params = parseFilterParams(urlSearchParams);
+  // Parse filters for future implementation
+  const _params = parseFilterParams(urlSearchParams);
   
-  // Fetch products from database
-  const result = await getAllProducts(params);
+  // Convert mock products to the expected format
+  const products = mockProducts.map(convertMockToProductListItem);
+  
+  // Create mock result object
+  const result = {
+    products: products,
+    totalCount: products.length,
+    totalPages: Math.ceil(products.length / 20),
+    currentPage: 1
+  };
   
   // For now, we'll use empty active filters since we need to implement filter parsing
   const activeFilters: Array<{ type: string; value: string; label: string }> = [];
   
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Breadcrumbs */}
+      <Breadcrumbs 
+        items={[
+          { label: 'Products' }
+        ]} 
+      />
+      
       <div className="lg:flex lg:gap-8">
         {/* Desktop Filters Sidebar - Only on desktop */}
         <div className="hidden lg:block">

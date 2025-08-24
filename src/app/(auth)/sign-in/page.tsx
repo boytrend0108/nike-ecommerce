@@ -1,11 +1,19 @@
-import Link from 'next/link';
-import { SocialProviders } from '@/components/SocialProviders';
 import { AuthFormClient } from '@/components/AuthFormClient';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import { SocialProviders } from '@/components/SocialProviders';
 import { signInAction } from '@/lib/auth/actions';
+import Link from 'next/link';
 
 export default function SignInPage() {
   return (
     <div className="space-y-6">
+      <Breadcrumbs 
+        items={[
+          { label: 'Account', href: '/sign-in' },
+          { label: 'Sign In' }
+        ]} 
+      />
+      
       <div className="text-center">
         <p className="text-body text-dark-700 mb-2">
           Already have an account? <Link href="/sign-up" className="text-dark-900 font-medium hover:underline">Sign Up</Link>
