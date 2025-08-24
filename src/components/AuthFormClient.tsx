@@ -1,28 +1,59 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-interface AuthFormProps {
+interface AuthFormClientProps {
   type: 'signin' | 'signup';
-  onSubmit: (formData: FormData) => Promise<{ error?: string } | void>;
 }
 
-export function AuthForm({ type, onSubmit }: AuthFormProps) {
+export function AuthFormClient({ type }: AuthFormClientProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+  });
+  const router = useRouter();
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsLoading(true);
     setError(null);
     
+    const data = {
+      email: formData.email,
+      password: formData.password,
+      ...(type === 'signup' && { name: formData.fullName }),
+    };
+
     try {
-      const result = await onSubmit(formData);
-      
-      if (result?.error) {
-        setError(result.error);
+      const response = await fetch(`/api/auth/${type}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || 'An error occurred');
+        return;
       }
+
+      router.push('/');
     } catch {
       setError('An unexpected error occurred');
     } finally {
@@ -31,7 +62,7 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
   };
 
   return (
-    <form action={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {type === 'signup' && (
         <div>
           <label htmlFor="fullName" className="block text-body-medium text-dark-900 mb-2">
@@ -41,6 +72,8 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
             type="text"
             id="fullName"
             name="fullName"
+            value={formData.fullName}
+            onChange={handleInputChange}
             placeholder="Enter your full name"
             className="w-full px-4 py-3 border border-light-300 rounded-lg text-body text-dark-900 placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
             required
@@ -56,6 +89,8 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
           type="email"
           id="email"
           name="email"
+          value={formData.email}
+          onChange={handleInputChange}
           placeholder="johndoe@gmail.com"
           className="w-full px-4 py-3 border border-light-300 rounded-lg text-body text-dark-900 placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
           required
@@ -71,6 +106,8 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
             type={showPassword ? 'text' : 'password'}
             id="password"
             name="password"
+            value={formData.password}
+            onChange={handleInputChange}
             placeholder="minimum 8 characters"
             className="w-full px-4 py-3 pr-12 border border-light-300 rounded-lg text-body text-dark-900 placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
             required
@@ -79,9 +116,9 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-500 hover:text-dark-900 focus:outline-none"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-dark-500 hover:text-dark-700"
           >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {showPassword ? '👁️' : '👁️‍🗨️'}
           </button>
         </div>
       </div>

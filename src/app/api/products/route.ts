@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { products } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 export async function GET() {
   try {
     const allProducts = await db
       .select()
       .from(products)
-      .where(products.isActive)
+      .where(eq(products.isActive, true))
       .orderBy(desc(products.createdAt));
 
     return NextResponse.json(allProducts);
