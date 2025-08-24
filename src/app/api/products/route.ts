@@ -8,7 +8,7 @@ export async function GET() {
     const allProducts = await db
       .select()
       .from(products)
-      .where(eq(products.isActive, true))
+      .where(eq(products.isPublished, true))
       .orderBy(desc(products.createdAt));
 
     return NextResponse.json(allProducts);
