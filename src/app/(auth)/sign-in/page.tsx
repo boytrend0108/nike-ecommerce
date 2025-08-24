@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SocialProviders } from '@/components/SocialProviders';
 import { AuthFormClient } from '@/components/AuthFormClient';
+import { signInAction } from '@/lib/auth/actions';
 
 export default function SignInPage() {
   return (
@@ -28,7 +29,7 @@ export default function SignInPage() {
         </div>
       </div>
 
-      <AuthFormClient type="signin" />
+      <AuthFormClient type="signin" onSubmit={signInAction} />
 
       <p className="text-center text-caption text-dark-700">
         Don&apos;t have an account?{' '}

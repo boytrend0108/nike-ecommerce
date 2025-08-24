@@ -3,8 +3,8 @@ import { user } from './user';
 
 export const account = pgTable('account', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: varchar('user_id', { length: 255 }).notNull().references(() => user.id, { onDelete: 'cascade' }),
-  accountId: varchar('account_id', { length: 255 }).notNull(),
+  userId: uuid('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  accountId: uuid('account_id').notNull(),
   providerId: varchar('provider_id', { length: 255 }).notNull(),
   accessToken: varchar('access_token', { length: 1000 }),
   refreshToken: varchar('refresh_token', { length: 1000 }),

@@ -1,10 +1,8 @@
-import { z } from "zod";
-import { cookies } from "next/headers";
+import { AuthFormData } from "@/components/AuthFormClient";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-// import { auth } from "./config";
-// import { db } from "../db";
-// import { guest } from "../db/schema";
-// import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { auth } from "./config";
 
 const signUpSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -17,41 +15,64 @@ const signInSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export async function signUpAction(formData: FormData) {
+export async function signUpAction(formData: AuthFormData) {
   'use server';
   
   const rawData = {
-    name: formData.get("fullName") as string,
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
+    name: formData.name,
+    email: formData.email,
+    password: formData.password,
   };
 
   const validatedData = signUpSchema.parse(rawData);
 
-  console.log("Sign up attempt:", validatedData);
-  
-  const mockUserId = crypto.randomUUID();
-  await mergeGuestCartWithUserCart(mockUserId);
+  try {
+    const result = await auth.api.signUpEmail({
+      body: {
+        name: validatedData.name,
+        email: validatedData.email,
+        password: validatedData.password,
+      }
+    });
 
-  redirect("/");
+    if (result.user) {
+      await mergeGuestCartWithUserCart(result.user.id);
+      return {ok: true, userId: result.user.id};
+    }
+  } catch (err) {
+    console.error("Sign up error:", err);
+  }
+
+
 }
 
-export async function signInAction(formData: FormData) {
+export async function signInAction(formData: AuthFormData) {
   'use server';
   
   const rawData = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
+    email: formData.email,
+    password: formData.password,
   };
 
+  
   const validatedData = signInSchema.parse(rawData);
 
-  console.log("Sign in attempt:", validatedData);
-  
-  const mockUserId = crypto.randomUUID();
-  await mergeGuestCartWithUserCart(mockUserId);
+  try {
+    const result = await auth.api.signInEmail({
+      body: {
+        email: validatedData.email,
+        password: validatedData.password,
+      }
+    });
 
-  redirect("/");
+    if (result.user) {
+      await mergeGuestCartWithUserCart(result.user.id);
+      return { ok: true, userId: result.user.id };
+    }
+  } catch (error) {
+    console.error("Sign in error:", error);
+    throw new Error("Invalid credentials");
+  }
 }
 
 export async function signOut() {
@@ -152,6 +173,18 @@ export async function getCurrentSession() {
 
     return null;
   } catch {
+    return null;
+  }
+}
+
+export async function getCurrentUser() {
+  try {
+const session = await auth.api.getSession({
+    headers: await headers() // you need to pass the headers object.
+})
+return session?.user || null;
+  } catch (err) {
+    console.log(err);
     return null;
   }
 }

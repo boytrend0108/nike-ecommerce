@@ -1,18 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+
+export interface AuthFormData {
+  name?: string;
+  email: string;
+  password: string;
+}
 
 interface AuthFormClientProps {
   type: 'signin' | 'signup';
+  onSubmit: (formData: AuthFormData) => Promise<{ok: boolean, userId: string} | void>;
 }
 
-export function AuthFormClient({ type }: AuthFormClientProps) {
+export function AuthFormClient({ type, onSubmit }: AuthFormClientProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
+  const [formData, setFormData] = useState<AuthFormData>({
+    name: '',
     email: '',
     password: '',
   });
@@ -30,30 +37,15 @@ export function AuthFormClient({ type }: AuthFormClientProps) {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    
-    const data = {
-      email: formData.email,
-      password: formData.password,
-      ...(type === 'signup' && { name: formData.fullName }),
-    };
 
     try {
-      const response = await fetch(`/api/auth/${type}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await onSubmit(formData);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setError(result.error || 'An error occurred');
+      if (response && response.ok) {
+        router.push('/');
         return;
       }
 
-      router.push('/');
     } catch {
       setError('An unexpected error occurred');
     } finally {
@@ -65,16 +57,16 @@ export function AuthFormClient({ type }: AuthFormClientProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {type === 'signup' && (
         <div>
-          <label htmlFor="fullName" className="block text-body-medium text-dark-900 mb-2">
-            Full Name
+          <label htmlFor="name" className="block text-body-medium text-dark-900 mb-2">
+            Name
           </label>
           <input
             type="text"
-            id="fullName"
-            name="fullName"
-            value={formData.fullName}
+            id="name"
+            name="name"
+            value={formData.name}
             onChange={handleInputChange}
-            placeholder="Enter your full name"
+            placeholder="Enter your name"
             className="w-full px-4 py-3 border border-light-300 rounded-lg text-body text-dark-900 placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
             required
           />
