@@ -4,9 +4,9 @@ import {
   categories,
   colors,
   genders,
+  productImages,
   products,
   productVariants,
-  productImages,
   sizes
 } from '../src/lib/db/schema';
 

@@ -10,9 +10,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Men', href: '#' },
-  { label: 'Women', href: '#' },
-  { label: 'Kids', href: '#' },
+  { label: 'Men', href: '/products?gender=men' },
+  { label: 'Women', href: '/products?gender=women' },
+  { label: 'Kids', href: '/products?gender=kids' },
   { label: 'Collections', href: '#' },
   { label: 'Contact', href: '#' },
 ];
@@ -25,7 +25,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <Link href="#" aria-label="Nike Home" className="flex items-center">
+            <Link href="/" aria-label="Nike Home" className="flex items-center">
               <Image src="/logo.svg" alt="Nike" width={28} height={28} priority />
             </Link>
           </div>

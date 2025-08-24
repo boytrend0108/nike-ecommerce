@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, RenderList } from '@/components';
+import Link from 'next/link';
 
 const bestOfAirMaxProducts = [
   {
@@ -82,6 +83,15 @@ export default function Home() {
             />
           )}
         />
+        
+        <div className="mt-8 text-center">
+          <Link 
+            href="/products" 
+            className="inline-flex items-center rounded-lg bg-dark-900 px-6 py-3 text-body-medium text-light-100 hover:bg-dark-700 transition-colors"
+          >
+            View All Products
+          </Link>
+        </div>
       </section>
     </div>
   );
