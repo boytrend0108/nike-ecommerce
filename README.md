@@ -1,3 +1,27 @@
+# Nike E-commerce
+
+## Database setup and seeding
+
+- Ensure .env contains:
+  - DATABASE_URL pointing to your Postgres/Neon instance (sslmode=require if needed)
+  - Optional: BETTER_AUTH_SECRET to silence build warnings
+
+- Apply schema:
+  - npm run db:push
+    - If you choose to generate migration files first: npm run db:generate
+      - When prompted by drizzle-kit about mapping new snake_case columns (e.g., products.category_id), choose “create column” for all new fields introduced by the normalized schema.
+    - Or apply migrations via: npm run db:migrate
+
+- Seed data:
+  - npm run db:seed
+  - Or run both in one go: npm run db:setup
+
+The seed will:
+- Copy images from public/shoes to static/uploads/shoes
+- Insert filters (genders, colors, sizes), brand (Nike), categories, collections
+- Create 15 Nike products with multiple variants and images
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
